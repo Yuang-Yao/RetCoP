@@ -1,7 +1,7 @@
 # Continual Retinal Vision-Language Pre-training upon Incremental Imaging Modalities
 
 
-## Quick Start
+## 🌈 Quick Start
 ### 1. Environment
 Clone the whole repository and install the dependencies.
 
@@ -145,7 +145,7 @@ CUDA_VISIBLE_DEVICES=0 python ./downstream/main_transferability_OCT.py --shots_t
 ```
 
 
-## Acknowledge
+## 💘 Acknowledge
 FLAIR -- https://github.com/jusiro/FLAIR
 
 FFA-IR -- https://github.com/mlii0117/FFA-IR
