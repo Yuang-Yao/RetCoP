@@ -177,11 +177,9 @@ def train_epoch_with_KD_loss_Atte_s(model, model_past, loader, optimizer, schedu
                 print(f"past_image_logits contains non-positive values: {past_image_logits}")
                 print(f"current_image_logits contains non-positive values: {current_image_logits}")
                 continue
-
-            I2T_KL_loss = -torch.mean(torch.sum(past_image_logits * (torch.log(current_image_logits) - torch.log(past_image_logits)), dim=-1))
-            print(f"I2T KL loss value: {I2T_KL_loss.item()}")  # I2T KL loss
-
+            
             #  I2T_KL_loss 
+            I2T_KL_loss = -torch.mean(torch.sum(past_image_logits * (torch.log(current_image_logits) - torch.log(past_image_logits)), dim=-1))
             if I2T_KL_loss < 0:
                 print(f"I2T KL loss is negative: {I2T_KL_loss.item()}")
                 continue
@@ -203,10 +201,8 @@ def train_epoch_with_KD_loss_Atte_s(model, model_past, loader, optimizer, schedu
                 print(f"current_text_logits contains non-positive values: {current_text_logits}")
                 continue
 
-
-            T2I_KL_loss = -torch.mean(torch.sum(past_text_logits * (torch.log(current_text_logits) - torch.log(past_text_logits)), dim=-1))
-            print(f"T2I KL loss value: {T2I_KL_loss.item()}")  # T2I KL loss
             #  T2I_KL_loss 
+            T2I_KL_loss = -torch.mean(torch.sum(past_text_logits * (torch.log(current_text_logits) - torch.log(past_text_logits)), dim=-1))
             if T2I_KL_loss < 0:
                 print(f"T2I KL loss is negative: {T2I_KL_loss.item()}")
                 continue
@@ -608,4 +604,5 @@ def main():
 
 if __name__ == "__main__":
     # os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"                                                           
+
     main()
