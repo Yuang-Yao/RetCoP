@@ -27,7 +27,6 @@ from torch.utils.data import DataLoader, Subset, Sampler, Dataset
 from torch.utils.data.dataset import ConcatDataset
 from torch.utils.data._utils.collate import default_collate
 import torch.nn.functional as F
-# import torchvision.transforms as trans  
 from sklearn.cluster import KMeans, MiniBatchKMeans
 import gc
 
@@ -70,11 +69,6 @@ def fit(model,model_past, datalaoders, epochs=30, lr=5e-4, weight_decay=1e-5, sc
         transforms=None, local_rank=None):
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
 
-    # tensorboard
-    # if not os.path.isdir("./results/train_records"):
-    #     os.mkdir("./results/train_records")
-    # write = SummaryWriter(log_dir='../../local_data/results/train_records', flush_secs=60)
-
     # lr  scheduler
     if scheduler:
         # lr  linear warmup
@@ -89,20 +83,14 @@ def fit(model,model_past, datalaoders, epochs=30, lr=5e-4, weight_decay=1e-5, sc
         loss_epoch = train_epoch_with_KD_loss_Atte_s(model,model_past,datalaoders["train"], optimizer, scheduler, transforms, epoch, datalaoders["KD"])
         if local_rank==0:
             print('Epoch=%d: ave_loss=%2.5f' % (epoch, loss_epoch))
-            # write.add_scalar("train_loss", loss_epoch, epoch)
 
-        #      save
+        #  save
         if (epoch % store_num == 0) & (local_rank==0):
             if model.module.out_path is not None:
                 if not os.path.isdir(model.module.out_path):
                     os.mkdir(model.module.out_path)
                 torch.save(model.module.state_dict(), model.module.out_path + model.module.vision_type + '_epoch' + str(epoch) + '.pth')
         epoch += 1
-
-
-
-# ====================================================================================================
-
 
 def train_epoch_with_KD_loss_Atte_s(model, model_past, loader, optimizer, scheduler=None, transforms=None, epoch=1, KD_loader=None):
     if loader is None:
@@ -128,7 +116,6 @@ def train_epoch_with_KD_loss_Atte_s(model, model_past, loader, optimizer, schedu
         KD_input_ids = KD_text_tokens["input_ids"].to(model.device).to(torch.long)
         KD_attention_mask = KD_text_tokens["attention_mask"].to(model.device).to(torch.long)
 
-        # 
         coocurrence = np.array(
             [[iDesc == iiDesc for iDesc in batch["sel_category"]] for iiDesc in batch["sel_category"]], np.float32)
         target = torch.tensor(coocurrence / coocurrence.sum(-1)).to(model.device).to(torch.float32)
@@ -139,7 +126,7 @@ def train_epoch_with_KD_loss_Atte_s(model, model_past, loader, optimizer, schedu
 
         with autocast():  # amp 
             if transforms is not None:
-                images = transforms(images)  # 
+                images = transforms(images) 
 
             img_embeds = model.module.vision_model(images)
             text_embeds = model.module.text_model(input_ids, attention_mask)
@@ -207,9 +194,6 @@ def train_epoch_with_KD_loss_Atte_s(model, model_past, loader, optimizer, schedu
             if T2I_KL_loss < 0:
                 print(f"T2I KL loss is negative: {T2I_KL_loss.item()}")
                 continue
-
-
-
             
             KD_embed = model.module.attention(img_embeds.unsqueeze(0), KD_img_embeds.unsqueeze(0), KD_text_embeds.unsqueeze(0)).squeeze(0)
 
@@ -252,11 +236,6 @@ def train_epoch_with_KD_loss_Atte_s(model, model_past, loader, optimizer, schedu
     return loss_ave / len(loader)
 
 
-
-
-
-
-
 class CombinedDataset(Dataset):
     def __init__(self, oct_dataset, ffa_dataset, cfp_dataset):
         self.ffa_dataset = ffa_dataset
@@ -273,7 +252,7 @@ class CombinedDataset(Dataset):
         return self.total_len
 
     def __getitem__(self, idx):
-        true_idx = self.index_list[idx]  # 
+        true_idx = self.index_list[idx]  
         if true_idx < self.ffa_len:
             return self.ffa_dataset[true_idx]  #  FFA 
         elif true_idx < self.ffa_len + self.cfp_len:
@@ -315,11 +294,9 @@ def select_representative_samples(model, cfp_kd_data, ratio=0.1, device="cuda"):
             joint_embedding = similarity.unsqueeze(-1) * image_embedding + (1 - similarity).unsqueeze(-1) * text_embedding
 
             cfp_features.append(joint_embedding.cpu().numpy())
-            # del image, text, image_embedding, text_input_ids, text_attention_mask, text_embedding, similarity, joint_embedding
-            # torch.cuda.empty_cache()  #  GPU 
-            # gc.collect()  # ， CPU 
 
-    cfp_features = np.vstack(cfp_features)  #  (N, d)，N ，d 
+
+    cfp_features = np.vstack(cfp_features)  
 
 
 
@@ -398,9 +375,6 @@ def select_representative_samples_train(model, cfp_train_data, ratio=0.1, device
                 text_embedding = model.text_model(text_input_ids, text_attention_mask)
                 batch_text_embeddings.append(text_embedding.cpu().numpy())
 
-                # del image, text, image_embedding, text_input_ids, text_attention_mask, text_embedding
-                # torch.cuda.empty_cache()  #  GPU 
-                # gc.collect()  # ， CPU 
 
         batch_image_embeddings = np.vstack(batch_image_embeddings)
         batch_text_embeddings = np.vstack(batch_text_embeddings)
@@ -414,13 +388,10 @@ def select_representative_samples_train(model, cfp_train_data, ratio=0.1, device
 
         cfp_features.append(batch_joint_embedding)
 
-        
-        # del batch_image_embeddings, batch_text_embeddings, batch_similarity, batch_joint_embedding
-        # torch.cuda.empty_cache()  #  GPU 
-        # gc.collect()  #  CPU 
 
 
-    cfp_features = np.vstack(cfp_features)  #  (N, d)，N ，d 
+
+    cfp_features = np.vstack(cfp_features)  
 
     num_samples = len(cfp_train_data)
     num_clusters = max(1, int(0.01 * num_samples))  # 1% 
@@ -516,8 +487,6 @@ def process(args):
     cfp_kd_data = dataloaders_CFP["KD"].dataset  # CFP  KD 
     print("CFP train&kd loaded successfully!")
 
-
-
     #  CFP&FFA  10% 
     sample_ratio = 0.1  
  
@@ -531,16 +500,11 @@ def process(args):
     selected_cfp_train_data = select_representative_samples_train(model_past, cfp_train_data, ratio=sample_ratio, device=device)
     print("cfp train_data selected successfully!")
 
-
-
-    # 
     combined_train_dataset = CombinedDataset(oct_train_data, selected_ffa_train_data, selected_cfp_train_data)  # train FFACFP
     print("train_data combined successfully!")
 
     combined_kd_dataset = CombinedDataset(oct_kd_data, selected_ffa_kd_data, selected_cfp_kd_data)  # KD  FFA  CFP 
     print("kd_data combined successfully!")
-
-
 
     #  train DataLoader  get_loader 
     train_loader = get_loader_cus1(
@@ -560,7 +524,6 @@ def process(args):
         train_loader=train_loader
     )
     print("kd_loader created successfully!")
-
 
     #  dataloaders
     dataloaders = {
@@ -639,6 +602,5 @@ def main():
 
 
 if __name__ == "__main__":
-    # os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"                                                           
-
     main()
+
